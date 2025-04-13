@@ -1,4 +1,362 @@
+You said:
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FluxIQ Dashboard</title>
+  <style>
+    /* Base Styles */
+    body {
+      background-color: #0f0f0f;
+      color: #ffffff;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #1a1a1a;
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 1.5rem;
+      color: #00ffcc;
+    }
+    .toggle {
+      background: #333;
+      border: none;
+      padding: 0.5rem 1rem;
+      color: #00ffcc;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .container {
+      padding: 2rem;
+      text-align: center;
+    }
+    /* Signal Panel */
+    .signal-panel {
+      margin: 0 auto;
+      max-width: 600px;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 1.5rem;
+      background-color: #111;
+    }
+    .signal-panel .direction {
+      font-size: 2.5rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+    }
+    .signal-panel .confidence {
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      color: #bbb;
+    }
+    #countdown {
+      font-size: 2rem;
+      margin: 1rem 0;
+    }
+    .progress {
+      height: 10px;
+      width: 80%;
+      margin: 10px auto;
+      background: #333;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .bar {
+      height: 100%;
+      background: #00ffcc;
+      width: 0%;
+    }
+    .metrics {
+      margin-top: 1rem;
+    }
+    .metrics div {
+      margin: 0.3rem 0;
+    }
+    /* Market Price Display */
+    .market-price {
+      margin-top: 1rem;
+      font-size: 1.2rem;
+      color: #00ffcc;
+    }
+    /* Trade Buttons */
+    .trade-buttons {
+      margin: 1rem 0;
+    }
+    .trade-buttons button {
+      background: #00ffcc;
+      border: none;
+      padding: 0.7rem 1.2rem;
+      margin: 0.3rem;
+      font-size: 1rem;
+      color: #0f0f0f;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    /* P/L Tracker & Performance Stats */
+    .pl-tracker {
+      font-size: 1.5rem;
+      margin-top: 1rem;
+      color: #00cc88;
+    }
+    .performance-stats {
+      margin-top: 1rem;
+      font-size: 1rem;
+      color: #ccc;
+    }
+    /* Trade Log */
+    .log {
+      background: #111;
+      padding: 1rem;
+      margin-top: 2rem;
+      text-align: left;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+      height: 200px;
+      overflow-y: scroll;
+      border: 1px solid #333;
+      border-radius: 8px;
+    }
+    .log-entry {
+      border-bottom: 1px solid #333;
+      padding: 0.5rem 0;
+      font-size: 0.9rem;
+    }
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+    .log-label {
+      font-weight: bold;
+      margin-right: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    FluxIQ Dashboard
+    <button class="toggle" onclick="toggleMode()">Mode: <span id="modeLabel">Sim</span></button>
+  </header>
 
-<!-- Placeholder: Final version will include full FluxIQ dashboard with signal names -->
-<!-- Example log entry:
-12:45:01 - Signal EUR/USD >1.1295 SELL 5-Min | Strong Confidence | Outcome: Win | P/L: $35.00 -->
+  <div class="container">
+    <div class="signal-panel">
+      <!-- Signal Display -->
+      <div class="direction" id="signalDirection">BUY</div>
+      <div class="confidence" id="signalConfidence">Strong Confidence</div>
+      
+      <!-- Countdown Timer -->
+      <div id="countdown">Time Left: <span id="timer">05:00</span></div>
+      <div class="progress">
+        <div class="bar" id="progressBar"></div>
+      </div>
+      
+      <!-- Metrics -->
+      <div class="metrics">
+        <div><span class="log-label">Probability ITM:</span> <span id="probability">80%</span></div>
+        <div><span class="log-label">Expected Value:</span> <span id="ev">$6.40</span></div>
+        <div><span class="log-label">Max ROI:</span> <span id="roi">80%</span></div>
+      </div>
+
+      <!-- Market Price (Real-time updating) -->
+      <div class="market-price">
+        Market Price: <span id="marketPrice">1.1300</span>
+      </div>
+
+      <!-- Trade Buttons -->
+      <div class="trade-buttons">
+        <button onclick="placeTrade('BUY')">Place BUY Trade</button>
+        <button onclick="placeTrade('SELL')">Place SELL Trade</button>
+      </div>
+
+      <!-- Profit/Loss Tracker & Performance Stats -->
+      <div class="pl-tracker">P/L: <span id="totalPL">$0.00</span></div>
+      <div class="performance-stats" id="performanceStats">
+        Trades: 0 | Wins: 0 | Losses: 0 | Win Rate: 0%
+      </div>
+      <button class="toggle" onclick="clearLog()">Clear Trade Log</button>
+    </div>
+
+    <!-- Trade Log -->
+    <div class="log" id="tradeLog">
+      <div class="log-entry"><strong>Trade Log:</strong></div>
+    </div>
+  </div>
+
+  <!-- Radar sweep sound for strong signals -->
+  <audio id="radarSound" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
+
+  <script>
+    // Global Variables
+    let timeLeft = 300; // 5 minutes in seconds
+    let totalPL = 0;
+    let tradeCount = 0;
+    let winCount = 0;
+    let lossCount = 0;
+    let mode = "Sim"; // default mode
+    const stake = 10; // fixed stake for simulation
+    let currentSignal = {}; // stores the fixed signal for each cycle
+    let currentMarketPrice = 1.1300; // starting simulated market price
+
+    // DOM Elements
+    const timerEl = document.getElementById("timer");
+    const directionEl = document.getElementById("signalDirection");
+    const confidenceEl = document.getElementById("signalConfidence");
+    const probabilityEl = document.getElementById("probability");
+    const evEl = document.getElementById("ev");
+    const roiEl = document.getElementById("roi");
+    const totalPLEl = document.getElementById("totalPL");
+    const performanceStatsEl = document.getElementById("performanceStats");
+    const tradeLogEl = document.getElementById("tradeLog");
+    const progressBar = document.getElementById("progressBar");
+    const marketPriceEl = document.getElementById("marketPrice");
+    const radarSound = document.getElementById("radarSound");
+
+    // Update Timer Display and Progress Bar
+    function updateTimerDisplay() {
+      const minutes = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+      const seconds = (timeLeft % 60).toString().padStart(2, '0');
+      timerEl.textContent = ${minutes}:${seconds};
+      progressBar.style.width = ${(1 - timeLeft / 300) * 100}%;
+    }
+
+    // Simulate market price updates (random walk)
+    function updateMarketPrice() {
+      // Market price fluctuates by ±0.0001 to ±0.0005 per second
+      const fluctuation = (Math.random() - 0.5) * 0.001;
+      currentMarketPrice += fluctuation;
+      currentMarketPrice = parseFloat(currentMarketPrice.toFixed(4));
+      marketPriceEl.textContent = currentMarketPrice.toFixed(4);
+    }
+
+    // Generate a new trade signal (fixed for the 5-min cycle)
+    function generateSignal() {
+      // Set a fixed strike price based on the market price at signal start
+      const fixedStrike = currentMarketPrice.toFixed(4);
+      // Random signal direction and confidence
+      const directions = ["BUY", "SELL"];
+      const confidenceLevels = ["Strong", "Cautious"];
+      const direction = directions[Math.floor(Math.random() * directions.length)];
+      const confidence = confidenceLevels[Math.floor(Math.random() * confidenceLevels.length)];
+      const prob = 70 + Math.floor(Math.random() * 20); // 70-89%
+      const roi = 80; // fixed ROI for simulation
+      // Calculate a simple expected value for simulation:
+      const ev = ((prob / 100) * (roi / 100 * stake)) - (((100 - prob) / 100) * stake);
+
+      currentSignal = {
+        asset: "EUR/USD",
+        strike: fixedStrike, // fixed for the cycle
+        direction: direction,
+        confidence: confidence,
+        probabilityITM: prob,
+        expectedValue: ev,
+        maxROI: roi,
+        timeframe: "5-Min"  // fixed timeframe
+      };
+
+      // Update UI with the new signal
+      directionEl.textContent = currentSignal.direction;
+      directionEl.style.color = currentSignal.direction === "BUY" ? "#00ff88" : "#ff4444";
+      confidenceEl.textContent = currentSignal.confidence + " Confidence";
+      probabilityEl.textContent = currentSignal.probabilityITM + "%";
+      evEl.textContent = "$" + currentSignal.expectedValue.toFixed(2);
+      roiEl.textContent = currentSignal.maxROI + "%";
+    }
+
+    // Update performance statistics
+    function updatePerformanceStats() {
+      const winRate = tradeCount > 0 ? Math.round((winCount / tradeCount) * 100) : 0;
+      performanceStatsEl.textContent = Trades: ${tradeCount} | Wins: ${winCount} | Losses: ${lossCount} | Win Rate: ${winRate}%;
+    }
+
+    // Auto-conclude a trade when timer expires
+    function autoConcludeTrade() {
+      // Outcome based on the fixed signal's probability
+      const outcomeWin = Math.random() < (currentSignal.probabilityITM / 100);
+      const outcome = outcomeWin ? "Win" : "Loss";
+      const profit = outcomeWin ? (currentSignal.maxROI / 100 * stake) : -stake;
+      logTrade("Auto", currentSignal.direction, currentSignal.confidence, outcome, profit, currentSignal.strike);
+    }
+
+    // Place a manual trade (via button)
+    function placeTrade(selectedDirection) {
+      // For simulation, a correct trade is if the selected direction matches the signal direction.
+      const outcomeWin = (selectedDirection === currentSignal.direction);
+      const outcome = outcomeWin ? "Win" : "Loss";
+      // Record the market price at the moment of trade placement as the entry price.
+      const entryPrice = currentMarketPrice;
+      const profit = outcomeWin ? (currentSignal.maxROI / 100 * stake) : -stake;
+      logTrade("Manual", selectedDirection, currentSignal.confidence, outcome, profit, currentSignal.strike, entryPrice);
+    }
+
+    // Log trade with a full trade name in the log
+    // For auto trades, entry price equals the fixed strike; for manual trades, use the actual market price at entry.
+    function logTrade(method, tradeDirection, conf, outcome, profit, strike, entryPrice) {
+      tradeCount++;
+      if (outcome === "Win") { winCount++; } else { lossCount++; }
+      totalPL += profit;
+      totalPLEl.textContent = "$" + totalPL.toFixed(2);
+      updatePerformanceStats();
+
+      const now = new Date().toLocaleTimeString();
+      // If no entryPrice provided, default to fixed strike (for auto trades)
+      if (!entryPrice) {
+        entryPrice = parseFloat(strike);
+      }
+      const tradeName = Signal ${currentSignal.asset} >${strike} ${tradeDirection} ${currentSignal.timeframe} @ ${entryPrice.toFixed(4)};
+      const logEntry = document.createElement("div");
+      logEntry.className = "log-entry";
+      logEntry.innerHTML = <span class="log-label">Time:</span> ${now} | <span class="log-label">Method:</span> ${method} | <span class="log-label">Trade:</span> ${tradeName} | <span class="log-label">Confidence:</span> ${conf} | <span class="log-label">Outcome:</span> ${outcome} | <span class="log-label">P/L:</span> $${profit.toFixed(2)};
+      tradeLogEl.appendChild(logEntry);
+      tradeLogEl.scrollTop = tradeLogEl.scrollHeight;
+      // Generate a new signal for the next cycle
+      generateSignal();
+    }
+
+    // Toggle mode (Simulated vs. Live – currently works the same way)
+    function toggleMode() {
+      mode = mode === "Sim" ? "Live" : "Sim";
+      document.getElementById("modeLabel").textContent = mode;
+      // Future: if live, connect to real data.
+    }
+
+    // Clear the trade log and reset performance stats
+    function clearLog() {
+      tradeLogEl.innerHTML = '<div class="log-entry"><strong>Trade Log:</strong></div>';
+      totalPL = 0;
+      tradeCount = 0;
+      winCount = 0;
+      lossCount = 0;
+      totalPLEl.textContent = "$0.00";
+      updatePerformanceStats();
+    }
+
+    // Start the countdown timer for the current cycle
+    function startCountdown() {
+      updateTimerDisplay();
+      const countdownInterval = setInterval(() => {
+        timeLeft--;
+        updateTimerDisplay();
+        updateMarketPrice(); // Update market price each second
+
+        if (timeLeft <= 0) {
+          clearInterval(countdownInterval);
+          autoConcludeTrade(); // Auto trade when time expires
+          timeLeft = 300; // Reset timer for new trade cycle
+          startCountdown();
+        }
+      }, 1000);
+    }
+
+    // Initialize: generate a signal and start timer
+    generateSignal();
+    startCountdown();
+    updatePerformanceStats();
+  </script>
+</body>
+</html>
