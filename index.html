@@ -1,29 +1,66 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>FluxIQ</title>
-    <style>
-        body {
-            background-color: #0f0f0f;
-            color: #ffffff;
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding-top: 100px;
-        }
-        h1 {
-            font-size: 48px;
-            color: #00ffcc;
-        }
-        p {
-            font-size: 24px;
-            color: #bbbbbb;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FluxIQ</title>
+  <style>
+    body {
+      background-color: #0f0f0f;
+      color: #ffffff;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding-top: 100px;
+    }
+    h1 {
+      font-size: 48px;
+      color: #00ffcc;
+      margin-bottom: 20px;
+    }
+    p {
+      font-size: 24px;
+      color: #bbbbbb;
+    }
+    #countdown {
+      font-size: 2em;
+      margin-top: 40px;
+      color: #00ffcc;
+    }
+  </style>
 </head>
 <body>
-    <h1>FluxIQ</h1>
-    <p>Coming Soon: Real-Time Trade Signal Dashboard</p>
+  <h1>FluxIQ</h1>
+  <p>Coming Soon: Real-Time Trade Signal Dashboard</p>
+
+  <div id="countdown">
+    Time Left: <span id="timer">05:00</span>
+  </div>
+
+  <script>
+    let timeLeft = 300; // 5 minutes in seconds
+    const timerEl = document.getElementById("timer");
+
+    function updateTimerDisplay() {
+      const minutes = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+      const seconds = (timeLeft % 60).toString().padStart(2, '0');
+      timerEl.textContent = `${minutes}:${seconds}`;
+    }
+
+    function startCountdown() {
+      updateTimerDisplay();
+      const countdownInterval = setInterval(() => {
+        timeLeft--;
+        updateTimerDisplay();
+
+        if (timeLeft <= 0) {
+          clearInterval(countdownInterval);
+          timeLeft = 300; // Reset timer
+          startCountdown(); // Restart countdown
+        }
+      }, 1000);
+    }
+
+    startCountdown();
+  </script>
 </body>
 </html>
