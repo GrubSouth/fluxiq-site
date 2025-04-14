@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>fluxIQ - 5-Min Options</title>
+  <title>fluxIQ - Sell Prediction</title>
   <!-- React and ReactDOM from CDN -->
   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
@@ -43,18 +43,23 @@
     .blue-text {
       color: #2962FF;
     }
+    .widget-container {
+      border: 1px solid #ddd;
+      background: #fff;
+      min-height: 500px;
+    }
   </style>
 </head>
 <body>
   <header>
-    <h1>fluxIQ - 5-Min Options</h1>
-    <p>Live trading simulation aligned with Eastern Time boundaries</p>
+    <h1>fluxIQ - Sell Prediction</h1>
+    <p>Live simulation aligned with Eastern Time boundaries</p>
   </header>
   <div id="root"></div>
   
-  <!-- Your entire React app -->
+  <!-- Entire React app below -->
   <script type="text/babel">
-    // TradingViewWidget component using your provided data
+    // TradingViewWidget component using the provided TradingView widget data.
     function TradingViewWidget() {
       const containerRef = React.useRef(null);
 
@@ -107,7 +112,7 @@
       }, []);
 
       return (
-        <div className="tradingview-widget-container" ref={containerRef} style={{ border: '1px solid #ddd', background: '#fff', minHeight: '500px' }}>
+        <div className="tradingview-widget-container widget-container" ref={containerRef}>
           <div className="tradingview-widget-container__widget"></div>
           <div className="tradingview-widget-copyright">
             <a href="https://www.tradingview.com/" rel="noopener nofollow" target="_blank">
@@ -118,9 +123,10 @@
       );
     }
     
-    // TradeSimulator component for the buy/sell simulation with live data
-    function TradeSimulator() {
+    // SellPredictionSimulator component predicts whether to sell or not.
+    function SellPredictionSimulator() {
       const [entryInfo, setEntryInfo] = React.useState('');
+      const [predictionInfo, setPredictionInfo] = React.useState('');
       const [profitInfo, setProfitInfo] = React.useState('');
       const [totalProfit, setTotalProfit] = React.useState(0);
       const timerRef = React.useRef(null);
@@ -142,21 +148,34 @@
         }
       };
 
-      // Initiates a trade by fetching the entry price and scheduling an expiration at the next 5-minute boundary.
-      const placeTrade = async (direction) => {
+      // When the button is clicked, predict whether to sell.
+      const predictSell = async () => {
+        // Clear any previous timer.
         if (timerRef.current) {
           clearTimeout(timerRef.current);
         }
         setProfitInfo('');
-        setEntryInfo('Fetching live entry price...');
+        setEntryInfo('Fetching live price for prediction...');
 
         const entryPrice = await getLivePrice();
         if (entryPrice === null) {
-          setEntryInfo("Failed to fetch live entry price.");
+          setEntryInfo("Failed to fetch live price.");
           return;
         }
 
-        // Get Eastern Time and calculate time until the next 5-min boundary.
+        // Simulate prediction logic (for demo, random chance)
+        const shouldSell = Math.random() >= 0.5; // 50/50 chance
+        if (shouldSell) {
+          setPredictionInfo("Prediction: Sell. Trade will be executed.");
+        } else {
+          setPredictionInfo("Prediction: Do Not Sell. No trade will be executed.");
+          setEntryInfo(`Current Price: ${entryPrice.toFixed(5)}`);
+          return;
+        }
+
+        // If predicting to sell, simulate executing the trade.
+        // For a sell trade, the profit is positive if the price drops.
+        // Calculate time (in ms) until the next 5-minute boundary (Eastern Time):
         const nowET = getEasternTime();
         const minutes = nowET.getMinutes();
         const seconds = nowET.getSeconds();
@@ -167,25 +186,25 @@
         }
         const msToNextBoundary = ((minutesToNextBoundary * 60) - seconds) * 1000 - ms;
 
-        const entryMsg = `Entry Price: ${entryPrice.toFixed(5)} (Direction: ${direction.toUpperCase()})
-Trade will expire in ${(msToNextBoundary / 1000).toFixed(0)} seconds (next 5‑minute boundary Eastern Time).`;
+        const entryMsg = `Sell Trade Initiated at Price: ${entryPrice.toFixed(5)}
+Trade will expire in ${(msToNextBoundary / 1000).toFixed(0)} seconds at the next 5‑minute boundary Eastern Time.`;
         setEntryInfo(entryMsg);
 
         timerRef.current = setTimeout(() => {
-          calculateProfit(direction, entryPrice);
+          executeSellTrade(entryPrice);
         }, msToNextBoundary);
       };
 
-      // At expiration, fetch the exit price, calculate profit, and update cumulative total.
-      const calculateProfit = async (direction, entryPrice) => {
+      // At trade expiration, fetch the live exit price, calculate profit, and update cumulative total.
+      const executeSellTrade = async (entryPrice) => {
         const exitPrice = await getLivePrice();
         if (exitPrice === null) {
           setProfitInfo("Failed to fetch live exit price.");
           return;
         }
         const pipFactor = 10000; // 1 pip = 0.0001 for EUR/USD.
-        const priceDifference = (exitPrice - entryPrice) * pipFactor;
-        const profit = direction === "buy" ? priceDifference : -priceDifference;
+        // For a sell, profit = (entryPrice - exitPrice) * pipFactor.
+        const profit = (entryPrice - exitPrice) * pipFactor;
         const newTotalProfit = totalProfit + profit;
         setTotalProfit(newTotalProfit);
 
@@ -196,23 +215,24 @@ Cumulative Profit: ${newTotalProfit.toFixed(2)} pips`;
       };
 
       return (
-        <div className="trade-simulator" style={{ padding: '20px', border: '1px solid #ddd', background: '#fff', marginTop: '20px' }}>
-          <h2>Live Buy/Sell Trade Simulation (5‑Minute Options)</h2>
-          <p>Select your prediction for EUR/USD until the next 5‑minute Eastern Time boundary.</p>
+        <div style={{ padding: '20px', border: '1px solid #ddd', background: '#fff', marginTop: '20px' }}>
+          <h2>Sell Prediction Simulator</h2>
+          <p>Click the button to predict whether you should sell. If the prediction is to sell, a trade will be executed at the next 5‑minute Eastern Time boundary.</p>
           <div style={{ margin: '10px 0' }}>
-            <button onClick={() => placeTrade('buy')}>Buy</button>
-            <button onClick={() => placeTrade('sell')}>Sell</button>
+            <button onClick={predictSell}>Predict: Should I Sell?</button>
           </div>
           <pre>{entryInfo}</pre>
+          <pre style={{ color: '#1E88E5' }}>{predictionInfo}</pre>
           <pre style={{ color: '#1E88E5' }}>{profitInfo}</pre>
           <p style={{ fontSize: '0.9em', color: '#777' }}>
-            *This demo uses live data from exchangerate.host and simulates a trade that expires at every 5‑minute boundary (Eastern Time). In a production app, you’d integrate with a broker API.
+            *This demo uses live data from exchangerate.host and simulates a prediction based on random chance.
+            In a production system, you would integrate a robust predictive model and broker API.
           </p>
         </div>
       );
     }
     
-    // Main App component that combines the TradingViewWidget and TradeSimulator.
+    // Main App component that combines the TradingViewWidget and SellPredictionSimulator.
     function App() {
       return (
         <div className="container">
@@ -221,7 +241,7 @@ Cumulative Profit: ${newTotalProfit.toFixed(2)} pips`;
             <TradingViewWidget />
           </section>
           <section style={{ marginBottom: '20px' }}>
-            <TradeSimulator />
+            <SellPredictionSimulator />
           </section>
         </div>
       );
@@ -233,4 +253,3 @@ Cumulative Profit: ${newTotalProfit.toFixed(2)} pips`;
   </script>
 </body>
 </html>
-
