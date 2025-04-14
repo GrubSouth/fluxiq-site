@@ -1,64 +1,76 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>fluxIQ</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>fluxIQ - 5-Min Options</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       margin: 0;
-      padding: 0;
-      background: #f2f2f2;
+      background: #f7f7f7;
     }
     header {
-      background: #333;
+      background-color: #333;
       color: #fff;
-      padding: 20px;
       text-align: center;
+      padding: 20px;
     }
     .container {
-      padding: 20px;
       max-width: 1200px;
-      margin: auto;
+      margin: 20px auto;
+      padding: 0 20px;
+    }
+    .trading-widget, .prediction {
+      background: #fff;
+      padding: 20px;
+      margin-bottom: 20px;
+      border: 1px solid #ddd;
     }
     .trading-widget {
-      width: 100%;
-      height: 600px;
-      border: 1px solid #ddd;
-      background: #fff;
-    }
-    .prediction {
-      margin-top: 20px;
-      padding: 20px;
-      background: #fff;
-      border: 1px solid #ddd;
+      min-height: 600px;
     }
     .prediction h2 {
       margin-top: 0;
+    }
+    .prediction-buttons {
+      margin: 10px 0;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-right: 10px;
+      cursor: pointer;
+    }
+    #entryInfo, #profitInfo {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    #profitInfo {
+      color: #1E88E5;
+    }
+    .disclaimer {
+      font-size: 0.9em;
+      color: #777;
     }
   </style>
 </head>
 <body>
   <header>
-    <h1>fluxIQ</h1>
+    <h1>fluxIQ - 5-Min Options</h1>
   </header>
+
   <div class="container">
-    <section class="widget">
-      <!-- TradingView Widget BEGIN -->
-      <div class="tradingview-widget-container trading-widget">
+    <!-- TradingView Widget BEGIN -->
+    <section class="trading-widget">
+      <h2>EUR/USD - 5 Minute View</h2>
+      <div class="tradingview-widget-container" style="height:500px;">
         <div class="tradingview-widget-container__widget"></div>
-        <div class="tradingview-widget-copyright">
-          <a href="https://www.tradingview.com/" rel="noopener nofollow" target="_blank">
-            <span class="blue-text">Track all markets on TradingView</span>
-          </a>
-        </div>
         <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js" async>
         {
           "symbols": [
-            [
-              "FX:EURUSD|5"  /* Setting the timeframe to 5-minute increments */
-            ]
+            [ "FX:EURUSD|5" ]
           ],
           "chartOnly": false,
           "width": "100%",
@@ -66,9 +78,9 @@
           "locale": "en",
           "colorTheme": "light",
           "autosize": true,
-          "showVolume": false,
-          "showMA": false,
-          "hideDateRanges": true,
+          "showVolume": true,
+          "showMA": true,
+          "hideDateRanges": false,
           "hideMarketStatus": false,
           "hideSymbolLogo": false,
           "scalePosition": "right",
@@ -84,18 +96,88 @@
           "maLength": 9,
           "headerFontSize": "medium",
           "lineWidth": 2,
-          "lineType": 0
+          "lineType": 0,
+          "dateRanges": [
+            "1d|1",
+            "1m|30",
+            "3m|60",
+            "12m|1D",
+            "60m|1W",
+            "all|1M"
+          ]
         }
         </script>
       </div>
-      <!-- TradingView Widget END -->
     </section>
-    
+    <!-- TradingView Widget END -->
+
     <section class="prediction">
-      <h2>Prediction Model</h2>
-      <p>This tool uses real-time currency data to predict whether the selected currency pair will move above or below a specified target value.</p>
-      <p>Learn more about binary options and how they work by visiting <a href="https://www.nadex.com/learning/what-are-binary-options-and-how-do-they-work/" target="_blank" rel="noopener noreferrer">this guide on Nadex</a>.</p>
+      <h2>5-Minute Buy / Sell Simulation</h2>
+      <p>Choose whether you think EUR/USD will go up (<strong>Buy</strong>) or down (<strong>Sell</strong>) over a short period (simulated 5-minute option). This demo will randomly simulate the entry price and the price after 5 minutes, then calculate your profit.</p>
+      
+      <div class="prediction-buttons">
+        <button onclick="placeTrade('buy')">Buy</button>
+        <button onclick="placeTrade('sell')">Sell</button>
+      </div>
+
+      <div id="entryInfo"></div>
+      <div id="profitInfo"></div>
+
+      <p class="disclaimer">
+        *This is a simple demonstration of how a front-end might handle a buy/sell simulation.  
+         Real trading requires integration with live market data and an approved broker.
+      </p>
     </section>
   </div>
+
+  <script>
+    let tradeDirection = null;
+    let entryPrice = 0;
+    let timerID = null;
+
+    function placeTrade(direction) {
+      // Clear any existing trade or timer
+      clearTimeout(timerID);
+      document.getElementById("profitInfo").textContent = "";
+
+      tradeDirection = direction;
+      // Randomly simulate an entry price, e.g., EUR/USD around 1.13 - 1.14
+      entryPrice = (1.13 + Math.random() * 0.01).toFixed(5);
+
+      const entryMessage = `Entry Price: ${entryPrice} (Direction: ${direction.toUpperCase()})`;
+      document.getElementById("entryInfo").textContent = entryMessage;
+
+      // Simulate a 5-minute option by waiting (e.g., 5 seconds in the demo).
+      // In real life, you'd wait for 5 minutes and fetch the live price at expiration.
+      timerID = setTimeout(() => calculateProfit(direction, entryPrice), 5000);
+    }
+
+    function calculateProfit(direction, entry) {
+      // Randomly simulate a closing price. 
+      // In a real app, you'd get the actual price from a data feed or broker API.
+      const closingPrice = (1.13 + Math.random() * 0.01).toFixed(5);
+
+      let profit = 0;
+      const pipValue = 10000; // 1 pip = 0.0001 for EUR/USD
+
+      // Calculate difference in pips
+      const priceDifference = (closingPrice - entry) * pipValue;
+
+      if (direction === "buy") {
+        profit = priceDifference; 
+      } else {
+        // If "sell", profit moves in the opposite direction
+        profit = -priceDifference;
+      }
+
+      // Format profit to 2 decimals
+      const profitFormatted = profit.toFixed(2);
+
+      const resultMsg = `Closing Price: ${closingPrice}
+      → Result: ${profitFormatted} pips`;
+
+      document.getElementById("profitInfo").textContent = resultMsg;
+    }
+  </script>
 </body>
 </html>
